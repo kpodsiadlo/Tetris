@@ -1,0 +1,649 @@
+<html>
+
+    <head>
+        
+        <style type = "text/css">
+            
+            #game {
+                float:left;
+            }
+            
+            #controls {
+                float:left
+            }
+        
+            .pixel {
+                font-size:12px;
+                font-family: sans-serif;
+                float:left;
+                width:30px;
+                height:30px;
+                border:1px solid black;
+             
+                
+            }
+            
+            .pixelActive {
+                background-color:red;
+            }
+            
+            .hidden {
+                display:none;
+            }
+            
+            .col1 {
+                background-color: cyan;
+            }
+            
+            .col2 {
+                background-color: blue;
+            }
+            
+            .col3 {
+                background-color: orange;
+            }
+            
+            .col4 {
+                background-color: yellow;
+            }
+            
+            .col5 {
+                background-color: lime;
+            }
+            
+            .col6 {
+                background-color: purple;
+            }
+            
+            .col7 {
+                background-color: red;
+            }
+            
+     
+        </style>
+             
+    
+    </head>
+   
+    
+    <body>
+        
+        <div id="game"></div>
+        <div id="controls">
+            <input type=button id=start value=Start!>
+            <p>Deleted rows: <span id="score">0</span>  </p>
+        </div>
+        
+        
+        
+                
+        <script type="text/javascript">
+            
+            "use strict"
+            
+            
+    /*      var originalLog = console.log
+            console.log=function(obj){
+            originalLog(JSON.parse(JSON.stringify(obj)))
+            }   */
+            
+            var game;
+            
+            var isPause = 1;
+            
+            var gameOver = 0;
+            
+            var board = [0];  //tu są przechowywane informacje o stanie blokow;
+            
+            var block = []  //tablica 2 d, spadający element
+            
+            var blockX = 2;       //pozycja referencyjna, lewy gorny rog
+            
+            var blockY = 4;        // pozycja referencyjna klocka, lewy gorny rog
+            
+            var variation = 0;
+            
+            var height = 22;     //wielkość planszy
+            
+            var width = 10;
+            
+            var blockExist = 0;
+            
+            var blockType;
+            
+            var blockVersion;
+            
+            var rowsDeleted = 0;
+                        
+            const I =   [
+                        [[0, 0, 0, 0],[1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0]],
+                        [[0, 0, 1, 0],[0, 0, 1, 0],[0, 0, 1, 0],[0, 0, 1, 0]],
+                        [[0, 0, 0, 0],[0, 0, 0, 0],[1, 1, 1, 1],[0, 0, 0, 0]],
+                        [[0, 1, 0, 0],[0, 1, 0, 0],[0, 1, 0, 0],[0, 1, 0, 0]]
+                        ];
+            
+            const J =   [
+                        [[2, 0, 0],[2, 2, 2],[0, 0, 0]],
+                        [[0, 2, 2],[0, 2, 0],[0, 2, 0]],
+                        [[0, 0, 0],[2, 2, 2],[0, 0, 2]],
+                        [[0, 2, 0],[0, 2, 0],[2, 2, 0]]
+                        ];   
+            
+            const L =   [
+                        [[0, 0, 3],[3, 3, 3],[0, 0, 0]],
+                        [[0, 3, 0],[0, 3, 0],[0, 3, 3]],
+                        [[0, 0, 0],[3, 3, 3],[3, 0, 0]],
+                        [[3, 3, 0],[0, 3, 0],[0, 3, 0]]
+                        ];
+                  
+            const O =   [
+                        [[4, 4],[4, 4]],
+                        [[4, 4],[4, 4]],
+                        [[4, 4],[4, 4]],
+                        [[4, 4],[4, 4]]
+                        ];
+            
+            const S =   [
+                        [[0, 5, 5],[5, 5, 0],[0, 0, 0]],
+                        [[0, 5, 0],[0, 5, 5],[0, 0, 5]],
+                        [[0, 0, 0],[0, 5, 5],[5, 5, 0]],
+                        [[5, 0, 0],[5, 5, 0],[0, 5, 0]]
+                        ];
+                 
+            const Z =   [
+                        [[6, 6, 0],[0, 6, 6],[0, 0, 0]],
+                        [[0, 0, 6],[0, 6, 6],[0, 6, 0]],
+                        [[0, 0, 0],[6, 6, 0],[0, 6, 6]],
+                        [[0, 6, 0],[6, 6, 0],[6, 0, 0]]
+                        ];
+                
+            const T =   [
+                        [[7, 7, 7],[0, 7, 0],[0, 0, 0]],
+                        [[0, 7, 0],[0, 7, 7],[0, 7, 0]],
+                        [[0, 0, 0],[0, 7, 0],[7, 7, 7]],
+                        [[0, 7, 0],[7, 7, 0],[0, 7, 0]]
+                        ];
+                                  
+            
+            const elements = [I, J, L, O, S, Z, T];
+            
+            
+            function initializeBoard (height, width){
+                board = [];
+                for (var i = 0; i <= height; i++) {
+                    
+                    board[i] = [];
+                    
+                    for (var j = 0; j <= width; j++ ){
+                        
+                        board[i][j] = 0;
+                        
+                    }
+                    
+                }
+               
+               console.log(board);
+
+            }
+        
+             
+            function drawBoard() {
+                                 
+                 for (var i = 0; i < board.length; i++) {
+                    for (var j = 0; j < board[i].length; j++) {
+                    
+                        var cell = document.createElement('div');  
+                        var cellId = i.toString() + "/" + j.toString();
+                        cell.setAttribute("id", cellId);
+                        document.getElementById("game").appendChild(cell);
+                        var cellRef = document.getElementById(cellId);
+                        
+                        cellRef.setAttribute("class", "pixel");
+                        if (i == 0) {
+                        }
+                        if (j == 0) {
+                            cellRef.style.clear = "both";
+                        }
+                       
+                    }
+
+               }
+                
+           } 
+        
+        
+            function updateBoard() {
+                console.log(board.length);
+                for (var i=0; i<board.length; i++){
+                    for (var j=0; j<board[i].length; j++){
+                        var cellID =  (i).toString() + "/" + (j).toString(); 
+                        
+                        if (board[i][j] != 1) {
+ //                          console.log(cellID);
+                            document.getElementById(cellID).className = "pixel col" + (board[i][j]).toString();
+                        }
+                        
+                        if (board[i][j] == 0) {
+                            document.getElementById(cellID).className = "pixel";
+//                          console.log(cellID);
+                        }
+                        
+                        if (i <= 1) {
+                            document.getElementById(cellID).className = "hidden";
+                        }
+                                                    
+                    }
+                }
+                
+                updateBlock();
+            }
+        
+            
+            function updateBlock() {
+               
+                
+                for (var i = 0; i < block.length; i++) {
+                    for (var j = 0; j < block[i].length; j++) {
+                        if (block[i][j] != 0) {
+                            var cellID = (blockX + i).toString() + "/" + (j + blockY).toString();
+          //                  console.log(cellID);
+                            document.getElementById(cellID).className = "pixel col" + (block[i][j]).toString();
+                    
+                        }    
+                    }
+                }   
+            
+                
+            
+            }
+        
+            
+            function addToBoard() {
+                for (var i = 0; i < block.length; i++)  {
+                    for (var j = 0; j < block[i].length; j++) {
+                        if (block[i][j] != 0) {
+                            
+                            board[i + blockX][j + blockY] = block[i][j];
+                        }
+                          
+                    }
+                }
+            }
+            
+            function randomElement() {
+                
+                var draw = (Math.floor(Math.random()*7))
+                console.log("Draw: " + draw);
+                return draw;         
+                
+            }        
+                                                  
+            function createBlock() {
+                
+                console.log("CREATE BLOCK");
+                             
+                blockType = (elements[randomElement()]);
+                blockVersion = 0;
+                block = blockType[0];
+                
+                switch(blockType) {
+                    case O:
+                        blockX = 2;
+                        break;
+                    case I:
+                        blockX = 0;
+                    default:
+                        blockX = 2;
+                }
+                
+                blockY = 4;  
+                
+                for (var row = 0; row < block.length; row++) {
+                        for (var col = 0; col < block[row].length; col++) {
+
+                                if (board[blockX+row][blockY+col] != 0) { //jeżeli na coś by wlazł
+                                    endGame();
+                                    return;
+                                }
+
+                        }
+                    }
+                
+                
+                blockExist = 1; 
+
+            } 
+            
+            function checkIfBelow() {
+                
+                    for (var i = block.length-1; i >=0 ; i--) {
+                        for (var j = 0; j < block.length; j++) {
+
+
+                                if (block[i][j] != 0) {  //jeżeli istnieje element w sprawdzanym rzęzie rzędzie
+                        //            console.log("Pozycja najniższego elementu: " + (i+blockX));
+
+                                    if  ((blockX + i) == (height - 1)) { //jeżeli dobił do podstawy 
+                          //              console.log("dobił do podstawy");
+                                        return true;
+                                    }
+
+
+                                    if ((board[blockX + i + 1] [j+blockY]) != 0 ) { //jeżeli pod spodem jest inny
+       //                                 console.log("pod spodem jest inny");
+                              //          console.log(board[block.length-1 + blockX] [j]);
+                                        return true;
+                                    }
+
+                                }
+                        }
+                    }
+                
+     //           console.log("Nic tam nie ma");
+                return false;
+                    
+            }
+            
+            function checkIfRight() {
+                
+                console.log("#CHECK IF RIGHT");
+                
+                    for (var j = block.length-1; j >=0 ; j--) {    //kolumny od prawej
+                        for (var i = 0; i < block.length; i++) {    //rzędy od gory
+
+                                if (block[i][j] != 0) {  //jeżeli istnieje element w sprawdzanym rzędzie
+                       //             console.log("Pozycja prawego elementu: X: " + (i + blockX) + " Y: " + (j + blockY));
+                        //            console.log("Wartość elementu po prawej: " + board[i][j+blockY+1])
+
+                                    if  ((blockY + j) == (width - 1)) { //jeżeli dobił do podstawy 
+                        //                console.log("dobił do prawego brzegu");
+                                        return true;
+                                    }
+
+
+                                    if ((board[i+blockX][j+blockY+1]) != 0 ) { //jeżeli prawej jest inny
+                                        console.log("pod prawej jest inny");
+                                        console.log(board[i+blockX] [j + blockY]);
+                                        return true;
+                                    }
+
+                                }
+                        }
+                    }
+                
+             //   console.log("Nic nie ma po prawej");
+                return false;
+            }
+            
+            function checkIfLeft() {
+                
+                console.log("#CHECK IF LEFT");
+                
+                    for (var j = 0; j <= block.length - 1 ; j++) {    //kolumny od lewej
+                        for (var i = 0; i <= block.length - 1 ; i++) {
+                            
+                                if (block[i][j] != 0) {  //jeżeli istnieje element w sprawdzanym rzędzie
+                   //                 console.log("Pozycja lewego elementu: X: " + (i + blockX) + " Y: " + (j + blockY));
+                //                    console.log("Wartość elementu po lewej: " + board[i][j+blockY+1])
+
+                                    if  ((blockY + j) == 0 ) { //jeżeli dobił do lewego brzegu 
+                                        console.log("dobił do lewego brzegu");
+                                        return true;
+                                    }
+
+
+                                    if ((board[i+blockX][j+blockY-1]) != 0 ) { //jeżeli lewej jest inny
+                                        console.log("pod lewej jest inny");
+                                        console.log(board[i+blockX] [j + blockY]);
+                                        return true;
+                                    }
+
+                                }
+                        }
+                    }
+                
+                return false;
+            }
+                        
+            function checkRow(row) {
+                    
+                return (board[row].every(x => x !=0)) 
+                   
+            }
+                  
+            function removeRows() {
+                
+               console.log("###REMOVE ROWS ###");
+                                
+                var a = height - 1;
+                
+                for (var i = a; i >= 0; i--) {
+                                        
+                     if (checkRow(i)) {
+                                
+                            function removeRow(row) {
+                         
+                                var load = []; 
+
+                                for (var j = 0; j < width; j++) {       
+
+                                    load.push(0);                       //napełnij nowy rząd zerami
+
+                                }
+
+                                board.splice(i, 1);                     //wytnij jeden rząd
+                                board.unshift(load);                    //dołoz rząd zer na początku
+                                rowsDeleted += 1;
+                                updateScore();
+                                
+                                if (checkRow(i)) {             //sprawdź jeszcze raz ten sam rząd
+                            
+                                    removeRow(i);              //usuń rząd
+                         
+                                    }
+                         
+                         }
+                         
+                         removeRow(i);
+                            
+                    }
+
+
+                }
+                
+            }                         
+                       
+            function elementFall() {
+                
+                if (blockExist == 1) {
+                     
+                    if (checkIfBelow()) {                         //jeżeli można
+
+                        addToBoard();
+                        blockExist = 0;
+                        removeRows();
+                        createBlock();
+                        updateBoard();
+                        return;
+                        
+                    }
+
+                    if (!checkIfBelow()) {     //jeżeli nie można
+                                
+                                blockX++;
+                                updateBoard();
+                                
+                                }
+                    
+                    }
+                
+                if (blockExist == 0) {                  // jeżeli element nie istnieje
+                removeRows();
+                createBlock();
+                updateBoard();
+                }
+            }
+        
+            
+            function rotate() {
+            
+                function checkIfRotate () {                
+                        
+                    var tempBlock = blockType[blockVersion + 1]; 
+
+                    for (var row = 0; row < block.length; row++) {
+                        for (var col = 0; col < block[row].length; col++) {
+
+                                if (isNaN(board[blockX+row][blockY+col])) { //jeżeli element wychodzi poza plansze
+                                    return false;
+                                }
+
+                                if (board[blockX+row][blockY+col] != 0) { //jeżeli na coś by wlazł
+                                    return false;
+                                }
+
+                        }
+                    }
+                        
+                    return true;
+                        
+                }
+                                
+                if (checkIfRotate()) {
+                
+                blockVersion += 1;
+                if (blockVersion > 3) {blockVersion = 0;}
+                
+                block = [[0],[0]];
+                updateBoard();
+                block = blockType[blockVersion];
+                updateBoard();
+                    
+                }
+                
+            }
+            
+            function pause() {
+                
+                switch (isPause) {
+                                
+                            case 0:
+                                clearInterval(game);
+                                isPause = 1;
+                                document.getElementById("start").setAttribute("value", "Continue");
+                                break;
+                                
+                            case 1:
+                                
+                                game = setInterval(function() {elementFall();}, 1000);
+                                document.getElementById("start").setAttribute("value", "Pause");
+                                isPause = 0;
+                                break;      
+  
+                        }
+            }
+            
+            function updateScore() {
+                document.getElementById("score").innerHTML = rowsDeleted ;
+            }
+            
+            function endGame(){
+                
+                pause();
+                document.getElementById("start").setAttribute("value", "RESET");
+                gameOver = 1;
+                
+                
+          
+            }
+            
+            function reset() {
+                console.log('reset');
+                console.log(board.length);
+                
+                initializeBoard(height-1, width-1);
+                updateBoard();
+                pause();
+                gameOver = 0;
+                
+            }
+                            
+            
+            //HERE STARTS THE APP//
+            
+            initializeBoard((height-1),(width-1));
+                        
+            drawBoard();    
+            
+            updateBoard();
+            
+            document.getElementById("start").onclick = function() {
+                
+                if (gameOver != 1) {
+                    pause();
+                }
+                
+                if (gameOver == 1) {
+                    reset();
+                }
+            }
+              
+            document.onkeydown = function(key) {
+                
+                if (gameOver != 1) {
+                
+                    if (key.keyCode == 32) {
+                        
+                        pause();
+                    }
+                
+                    if (isPause == 0) {
+                    
+                    
+                        if (key.keyCode == 40) {
+
+                            elementFall();
+
+                        }
+
+                        if (key.keyCode == 38) {
+
+                            rotate();
+
+                        }
+
+
+                        if (key.keyCode == 37) {
+
+                            if (!checkIfLeft()) {                        
+                                blockY--;
+                                updateBoard(); 
+
+                            }
+
+                        }  
+
+
+                         if (key.keyCode == 39) {
+
+                            if (!checkIfRight()){
+                                blockY++;
+                                updateBoard();  
+
+                            }
+
+                        }
+                    }
+                }
+                
+
+            }
+               //STEERING  
+ 
+        </script>
+        
+     
+    </body>
+
+
+</html>
